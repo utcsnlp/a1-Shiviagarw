@@ -8,6 +8,8 @@ from nerdata import *
 from optimizers import *
 from typing import List
 from constants import id_labels, label_idx, label_vectors
+import pandas as pd
+import ast
 
 class CountBasedClassifier(object):
     """
@@ -98,7 +100,125 @@ class NERClassifier(object):
         :param idx:
         :return: 0 if not a person token, 1 if a person token
         """
+        graddict={};
+       file = open("FeatureSet.txt", "r")
+       contents = file.read()
+       dictionary = ast.literal_eval(contents)
+       file.close()
+       IndxList=[];
+       file = open("Label.txt", "r")
+       labls = file.read();
+       dict_labels = ast.literal_eval(labls);
+       file.close();
+        for ner_exssentence in ner_exs:
+            ner_exstoken=ner_exssentence.split();
+            for idx in range(0, len(ner_exstoken)):
+                if ner_exstoken[idx] in dictionary:
+                    IndxList.append(dictionary[ner_exstoken[idx]]);
+                else :
+                    IndxList.append(dictionary["unknown"]);
+
+            for Indx in IndxList:
+                val = dict_labels[Indx];
+                person=0;
+                org=0;
+                loc=0;
+                mis=0;
+                othr=0;
+            
+                if val=="PER":
+                    person=1;
+                elif val=="ORG":
+                    org=1;
+                elif val=="LOC":
+                    loc=1;
+                elif val=="MIS":
+                    mis=1;
+                elif val=="OTH":
+                    othr=1;
+                
+                list1=[person,org,loc,mis,othr];  
+                labelVector = np.array(list1);
+                print(labelVector);
+                WeightMatrix = np.zeros((len(dictionary), 5));
+                print(WeightMatrix);
+                for j in range(0,5):
+                    sum=sum+WeightMatrix[Indx][j];
+                score=sum;
+              # softmax function    
+                f_x = np.exp(score) / np.sum(np.exp(score));
         raise Exception("Implement me!")
 
+
 def train_classifier(ner_exs: List[NERExample]) -> NERClassifier:
+    # Extracting Feature
+   optm=UnregularizedAdagradTrainer(WeightMatrix);
+   graddict={};
+   file = open("FeatureSet.txt", "r")
+   contents = file.read()
+   dictionary = ast.literal_eval(contents)
+   file.close()
+   IndxList=[];
+   file = open("Label.txt", "r")
+   labls = file.read();
+   dict_labels = ast.literal_eval(labls);
+   file.close();
+
+    for epoches in range(0.50):
+        for ner_exssentence in ner_exs:
+            ner_exstoken=ner_exssentence.split();
+            for idx in range(0, len(ner_exstoken)):
+                if ner_exstoken[idx] in dictionary:
+                    IndxList.append(dictionary[ner_exstoken[idx]]);
+                else :
+                    IndxList.append(dictionary["unknown"]);
+
+            for Indx in IndxList:
+                val = dict_labels[Indx];
+                person=0;
+                org=0;
+                loc=0;
+                mis=0;
+                othr=0;
+            
+                if val=="PER":
+                    person=1;
+                elif val=="ORG":
+                    org=1;
+                elif val=="LOC":
+                    loc=1;
+                elif val=="MIS":
+                    mis=1;
+                elif val=="OTH":
+                    othr=1;
+                
+                list1=[person,org,loc,mis,othr];  
+                labelVector = np.array(list1);
+                print(labelVector);
+                WeightMatrix = np.zeros((len(dictionary), 5));
+                print(WeightMatrix);
+                for j in range(0,5):
+                    sum=sum+WeightMatrix[Indx][j];
+                score=sum;
+              # softmax function    
+                f_x = np.exp(score) / np.sum(np.exp(score));
+            
+                
+                '''for i in range(5):
+                    if list1[i]==1:
+                        colindx=i;
+                        break;'''
+                        
+              #  listvctor=[WeightMatrix[Indx][0],WeightMatrix[Indx][1],WeightMatrix[Indx][2],WeightMatrix[Indx][3],WeightMatrix[Indx][4]];    
+               # sumweightvector=np.array(listvctor);
+                #print(sumweightvector);
+                
+                gradRes = np.subtract(labelVector,f_x);
+                graddict[Indx]=gradRes;         
+                loss= np.log(f_x);                              
+    
+    optm.apply_gradient_update((graddict), batch_size);
+            
+
+            
     raise Exception("Implement me!")
